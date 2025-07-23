@@ -76,3 +76,10 @@ export async function downloadImageAsBase64(url: string): Promise<string> {
   const b64 = buffer.toString('base64')
   return `${b64}`
 }
+
+export async function throwIfNotLoggedIn(page: puppeteer.Page): Promise<void> {
+  const isLoginPage = (await page.$('#ap_email')) !== null || (await page.$('#signInSubmit')) !== null
+  if (isLoginPage) {
+    throw new Error('You need to be logged in to access this feature. Please log in to Amazon first and then try again.')
+  }
+}

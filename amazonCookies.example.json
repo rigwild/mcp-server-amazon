@@ -1,6 +1,6 @@
 [
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1765985623.4719,
     "hostOnly": false,
     "httpOnly": false,
@@ -13,7 +13,7 @@
     "value": "262-3992533-1234567"
   },
   {
-    "domain": "www.amazon.es",
+    "domain": "www.amazon.com",
     "expirationDate": 1751038456.64728,
     "hostOnly": true,
     "httpOnly": false,
@@ -26,7 +26,7 @@
     "value": "eyJ3YXNtVGVzxxxxxxxxxxxxxxx"
   },
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1766055357.407565,
     "hostOnly": false,
     "httpOnly": false,
@@ -39,7 +39,7 @@
     "value": "xxxxxxxxxx"
   },
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1765985623.472211,
     "hostOnly": false,
     "httpOnly": false,
@@ -52,7 +52,7 @@
     "value": "2082787201l"
   },
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1765985623.313376,
     "hostOnly": false,
     "httpOnly": true,
@@ -65,7 +65,7 @@
     "value": "Atza|IwEBIOy-xxxxxxxxx"
   },
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1765985623.313526,
     "hostOnly": false,
     "httpOnly": true,
@@ -78,7 +78,7 @@
     "value": "\"5qfQRHBU2eZuCZkFhj+xxxxxxxxx\""
   },
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1765985623.471672,
     "hostOnly": false,
     "httpOnly": false,
@@ -91,7 +91,7 @@
     "value": "262-2607238-3505323"
   },
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1766055357.407166,
     "hostOnly": false,
     "httpOnly": false,
@@ -104,7 +104,7 @@
     "value": "HUoAsHXDi+Hxxxxxxxxxxxxxxxxx"
   },
   {
-    "domain": ".amazon.es",
+    "domain": ".amazon.com",
     "expirationDate": 1765985623.313788,
     "hostOnly": false,
     "httpOnly": true,

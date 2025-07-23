@@ -1,4 +1,4 @@
-import { getCartContent } from './amazon.js'
+import { getCartContent } from './cart.js'
 
 async function main() {
   try {

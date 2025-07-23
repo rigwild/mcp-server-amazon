@@ -1,4 +1,4 @@
-import { clearCart } from './amazon.js'
+import { clearCart } from './cart.js'
 import { USE_MOCKS } from './config.js'
 
 async function testClearCart() {

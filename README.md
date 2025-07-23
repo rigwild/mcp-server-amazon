@@ -9,6 +9,7 @@ This server allows you to interact with Amazon's services using the MCP (Model C
 - **Cart management**: Add items or clear your Amazon cart
 - **Ordering**: Place orders (fake for demonstration purposes)
 - **Orders history**: Retrieve your recent Amazon orders details
+- **Returns**: Initiate returns or replacements for eligible orders
 
 ## Demo
 

@@ -1,4 +1,4 @@
-import { searchProducts } from './amazon.js'
+import { searchProducts } from './products.js'
 
 async function testSearchProducts() {
   console.log('🧪 Testing Amazon Search Products functionality...')

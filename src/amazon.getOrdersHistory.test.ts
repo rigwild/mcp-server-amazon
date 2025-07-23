@@ -1,4 +1,4 @@
-import { getOrdersHistory } from './amazon.js'
+import { getOrdersHistory } from './orders.js'
 
 async function main() {
   try {

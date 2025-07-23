@@ -1,7 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
-import { getOrdersHistory, getCartContent, addToCart, getProductDetails, searchProducts, clearCart } from './amazon.js'
+import { getOrdersHistory, initiateReturn } from './orders.js'
+import { getCartContent, addToCart, clearCart } from './cart.js'
+import { getProductDetails, searchProducts } from './products.js'
 
 // Create server instance
 const server = new McpServer({
@@ -260,6 +262,44 @@ server.tool(
         {
           type: 'text',
           text: '✅ Purchase confirmed! You can now consult your orders history to see the details of your latest purchase.',
+        },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'initiate-return',
+  'Navigate to the return/replace page for a specific order - ' +
+    'Use this to start the return process for items in an order - ' +
+    'The order ID can be obtained from get-orders-history',
+  {
+    orderId: z
+      .string()
+      .min(1, { message: 'Order ID cannot be empty.' })
+      .describe('The order ID to initiate return for. Format: XXX-XXXXXXX-XXXXXXX (e.g., 114-3824678-7026645)'),
+  },
+  async ({ orderId }) => {
+    let result: Awaited<ReturnType<typeof initiateReturn>>
+    try {
+      result = await initiateReturn(orderId)
+    } catch (error: any) {
+      console.error('[ERROR][initiate-return] Error in initiate-return tool:', error)
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `An error occurred while initiating return. Error: ${error.message}`,
+          },
+        ],
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: JSON.stringify(result, null, 2),
         },
       ],
     }
