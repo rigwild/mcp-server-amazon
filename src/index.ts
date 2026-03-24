@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { getOrdersHistory } from './orders.js'
 import { getCartContent, addToCart, clearCart } from './cart.js'
 import { getProductDetails, searchProducts } from './products.js'
+import { createWishlist, addToWishlist, getWishlist, listWishlists, removeFromWishlist, deleteWishlist } from './wishlist.js'
 
 // Create server instance
 const server = new McpServer({
@@ -264,6 +265,118 @@ server.tool(
           text: '✅ Purchase confirmed! You can now consult your orders history to see the details of your latest purchase.',
         },
       ],
+    }
+  }
+)
+
+// ##################################
+// Wishlist Tools
+// ##################################
+
+server.tool(
+  'create-wishlist',
+  'Create a new local wishlist to save Amazon products for later. Wishlists are stored in wishlists.json.',
+  {
+    name: z.string().min(1).describe('Name for the wishlist, e.g. "Camping Gear", "Nintendo Switch", "Tesla Accessories"'),
+    description: z.string().optional().describe('Optional description for the wishlist'),
+  },
+  async ({ name, description }) => {
+    try {
+      const result = createWishlist(name, description)
+      return { content: [{ type: 'text', text: result.success ? `✅ ${result.message}` : `❌ ${result.message}` }] }
+    } catch (error: any) {
+      return { content: [{ type: 'text', text: `❌ Error creating wishlist: ${error.message}` }] }
+    }
+  }
+)
+
+server.tool(
+  'add-to-wishlist',
+  'Add a product to a local wishlist by ASIN. Auto-creates the wishlist if it does not exist. Use this to save cart items for later.',
+  {
+    wishlistName: z.string().min(1).describe('Name of the wishlist to add the item to'),
+    asin: z.string().length(10).describe('10-character Amazon ASIN of the product'),
+    title: z.string().min(1).describe('Product title'),
+    price: z.string().min(1).describe('Product price, e.g. "$19.99"'),
+    productUrl: z.string().describe('Amazon product URL or path'),
+    image: z.string().optional().describe('Product image URL'),
+    notes: z.string().optional().describe('Optional personal notes about this item'),
+  },
+  async ({ wishlistName, asin, title, price, productUrl, image, notes }) => {
+    try {
+      const result = addToWishlist(wishlistName, { asin, title, price, productUrl, image, notes })
+      return { content: [{ type: 'text', text: result.success ? `✅ ${result.message}` : `❌ ${result.message}` }] }
+    } catch (error: any) {
+      return { content: [{ type: 'text', text: `❌ Error adding to wishlist: ${error.message}` }] }
+    }
+  }
+)
+
+server.tool(
+  'get-wishlist',
+  'Get all items in a specific wishlist, including titles, prices, ASINs, and product links.',
+  {
+    name: z.string().min(1).describe('Name of the wishlist to retrieve'),
+  },
+  async ({ name }) => {
+    try {
+      const result = getWishlist(name)
+      if (!result) {
+        return { content: [{ type: 'text', text: `❌ Wishlist "${name}" not found. Use list-wishlists to see all wishlists.` }] }
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+    } catch (error: any) {
+      return { content: [{ type: 'text', text: `❌ Error retrieving wishlist: ${error.message}` }] }
+    }
+  }
+)
+
+server.tool(
+  'list-wishlists',
+  'List all wishlists with their names, item counts, estimated totals, and last updated timestamps.',
+  {},
+  async () => {
+    try {
+      const result = listWishlists()
+      if (result.length === 0) {
+        return { content: [{ type: 'text', text: 'No wishlists found. Use create-wishlist or add-to-wishlist to get started.' }] }
+      }
+      return { content: [{ type: 'text', text: JSON.stringify(result, null, 2) }] }
+    } catch (error: any) {
+      return { content: [{ type: 'text', text: `❌ Error listing wishlists: ${error.message}` }] }
+    }
+  }
+)
+
+server.tool(
+  'remove-from-wishlist',
+  'Remove a specific product from a wishlist by ASIN.',
+  {
+    wishlistName: z.string().min(1).describe('Name of the wishlist'),
+    asin: z.string().length(10).describe('10-character ASIN of the product to remove'),
+  },
+  async ({ wishlistName, asin }) => {
+    try {
+      const result = removeFromWishlist(wishlistName, asin)
+      return { content: [{ type: 'text', text: result.success ? `✅ ${result.message}` : `❌ ${result.message}` }] }
+    } catch (error: any) {
+      return { content: [{ type: 'text', text: `❌ Error removing from wishlist: ${error.message}` }] }
+    }
+  }
+)
+
+server.tool(
+  'delete-wishlist',
+  'Permanently delete an entire wishlist and all its items.',
+  {
+    name: z.string().min(1).describe('Name of the wishlist to delete'),
+  },
+  async ({ name }) => {
+    try {
+      const result = deleteWishlist(name)
+      return { content: [{ type: 'text', text: result.success ? `✅ ${result.message}` : `❌ ${result.message}` }] }
+    } catch (error: any) {
+      return { content: [{ type: 'text', text: `❌ Error deleting wishlist: ${error.message}` }] }
     }
   }
 )

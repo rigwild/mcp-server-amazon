@@ -215,6 +215,7 @@ build/
 dist/
 
 amazonCookies.json
+wishlists.json
 mocks/*_202*.html
 mocks/*_202*.txt
 !mcp-server-amazon.log

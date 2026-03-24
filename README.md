@@ -68,3 +68,18 @@ See `~/Library/Logs/Claude/mcp-server-amazon.log`
 ## License
 
 [The MIT license](./LICENSE)
+
+## Wishlist Feature (fork)
+
+This fork adds a local wishlist system via 6 new MCP tools:
+
+| Tool | Description |
+|---|---|
+| `create-wishlist` | Create a new named wishlist |
+| `add-to-wishlist` | Add a product by ASIN (auto-creates wishlist if needed) |
+| `get-wishlist` | View all items in a wishlist |
+| `list-wishlists` | List all wishlists with item counts and estimated totals |
+| `remove-from-wishlist` | Remove an item by ASIN |
+| `delete-wishlist` | Delete an entire wishlist |
+
+Wishlists are stored locally in `wishlists.json` (gitignored). No Amazon API required — pure local JSON persistence.
