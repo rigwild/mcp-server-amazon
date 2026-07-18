@@ -2,7 +2,7 @@ import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js'
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { getOrdersHistory } from './orders.js'
-import { getCartContent, addToCart, clearCart } from './cart.js'
+import { getCartContent, addToCart, clearCart, removeFromCart } from './cart.js'
 import { getProductDetails, searchProducts } from './products.js'
 
 // Create server instance
@@ -120,6 +120,44 @@ server.tool(
         {
           type: 'text',
           text: result.success ? `✅ ${result.message}` : `❌ Failed to add product to cart: ${result.message}`,
+        },
+      ],
+    }
+  }
+)
+
+server.tool(
+  'remove-from-cart',
+  'Remove a single item from the Amazon cart by its ASIN, leaving all other items untouched - ' +
+    'Use this instead of clear-cart when you only want to drop or swap specific products. ' +
+    'You should always ask for confirmation to the user before running this tool',
+  {
+    asin: z
+      .string()
+      .length(10, { message: 'ASIN must be a 10-character string.' })
+      .describe('The ASIN (Amazon Standard Identification Number) of the product to remove from the cart. Must be a 10-character string.'),
+  },
+  async ({ asin }) => {
+    let result: Awaited<ReturnType<typeof removeFromCart>>
+    try {
+      result = await removeFromCart(asin)
+    } catch (error: any) {
+      console.error('[ERROR][remove-from-cart] Error in remove-from-cart tool:', error)
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `An error occurred while removing the item from cart. Error: ${error.message}`,
+          },
+        ],
+      }
+    }
+
+    return {
+      content: [
+        {
+          type: 'text',
+          text: result.success ? `✅ ${result.message}` : `❌ ${result.message}`,
         },
       ],
     }

@@ -215,6 +215,12 @@ build/
 dist/
 
 amazonCookies.json
+# ...and every rotated/backup copy. The bare filename above left
+# `amazonCookies.json.bak.<ts>` untracked-but-committable — these hold LIVE
+# session-token / at-main auth cookies, so a `git add -A` would publish an
+# Amazon session. (amazonCookies.example.json stays tracked — it's upstream's.)
+amazonCookies.json.bak*
+amazonCookies.json.*.bak
 mocks/*_202*.html
 mocks/*_202*.txt
 !mcp-server-amazon.log

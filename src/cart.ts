@@ -302,3 +302,81 @@ export async function clearCart() {
     await browser.close()
   }
 }
+
+// ##################################
+// Remove a single item from Cart (by ASIN)
+// ##################################
+
+export async function removeFromCart(asin: string): Promise<{ success: boolean; message: string; itemsRemoved: number }> {
+  if (!asin || asin.length !== 10) {
+    throw new Error('Invalid ASIN provided. ASIN should be a 10-character string.')
+  }
+
+  const domain = getAmazonDomain()
+  const url = `https://www.${domain}/-/en/gp/cart/view.html`
+  console.error(`[INFO][remove-from-cart] Removing product ${asin} from cart at ${url}`)
+
+  const { browser, page } = await createBrowserAndPage()
+
+  try {
+    // Navigate to the cart page
+    await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 })
+
+    // Handle login if needed
+    await throwIfNotLoggedIn(page)
+
+    // Wait for the cart to load
+    await page.waitForSelector('#sc-active-cart, .sc-cart-item, .sc-empty-cart-banner', { timeout: 10000 })
+
+    // Scope to the active-cart row for this ASIN so we never touch a different item.
+    // Same item-block element that get-cart-content reads `data-asin` from; the
+    // delete control (`span[data-action="delete-active"]`) lives inside that block.
+    const rowSelector = `#sc-active-cart [data-asin="${asin}"]`
+    const row = await page.$(rowSelector)
+    if (!row) {
+      console.error(`[INFO][remove-from-cart] ASIN ${asin} not found in active cart`)
+      return {
+        success: false,
+        message: `Item with ASIN ${asin} was not found in the active cart. Nothing removed.`,
+        itemsRemoved: 0,
+      }
+    }
+
+    const deleteButton = await row.$('span[data-action="delete-active"]')
+    if (!deleteButton) {
+      console.error(`[WARNING][remove-from-cart] Found ASIN ${asin} but no delete button in its row`)
+      return {
+        success: false,
+        message: `Found ASIN ${asin} in cart but could not locate its delete button (Amazon DOM may have changed).`,
+        itemsRemoved: 0,
+      }
+    }
+
+    await deleteButton.click()
+    console.error(`[INFO][remove-from-cart] Clicked delete for ASIN ${asin}`)
+
+    // Wait for the cart to update, then verify the row is gone (reload to be certain).
+    await new Promise(resolve => setTimeout(resolve, 1500))
+    await page.reload({ waitUntil: 'networkidle2', timeout: 30000 })
+    const stillThere = await page.$(rowSelector)
+    if (stillThere) {
+      return {
+        success: false,
+        message: `Clicked delete for ASIN ${asin} but it still appears in the cart.`,
+        itemsRemoved: 0,
+      }
+    }
+
+    console.error(`[INFO][remove-from-cart] Successfully removed ASIN ${asin}`)
+    return {
+      success: true,
+      message: `Successfully removed item ${asin} from cart.`,
+      itemsRemoved: 1,
+    }
+  } catch (error: any) {
+    console.error('[ERROR][remove-from-cart] Error removing item:', error)
+    throw new Error(`Failed to remove item from cart: ${error.message}`)
+  } finally {
+    await browser.close()
+  }
+}

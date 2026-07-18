@@ -70,8 +70,9 @@ The server requires Amazon cookies for authentication:
 3. `get-orders-history`: View past orders
 4. `get-cart-content`: View current cart
 5. `add-to-cart`: Add items to cart
-6. `clear-cart`: Remove all items from cart
-7. `perform-purchase`: Complete purchase (mock mode only)
+6. `remove-from-cart`: Remove a single item from the cart by ASIN (leaves other items untouched)
+7. `clear-cart`: Remove all items from cart
+8. `perform-purchase`: Complete purchase (mock mode only)
 
 ## Testing Approach
 
