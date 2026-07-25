@@ -1,10 +1,9 @@
 import * as cheerio from 'cheerio'
 import fs from 'fs'
+import path from 'path'
 import puppeteer from 'puppeteer'
-import { USE_MOCKS, EXPORT_LIVE_SCRAPING_FOR_MOCKS, getAmazonDomain } from './config.js'
+import { USE_MOCKS, EXPORT_LIVE_SCRAPING_FOR_MOCKS, PACKAGE_ROOT, getAmazonDomain } from './config.js'
 import { createBrowserAndPage, getTimestamp, throwIfNotLoggedIn } from './utils.js'
-
-const __dirname = new URL('.', import.meta.url).pathname
 
 // ##################################
 // Product Details
@@ -39,7 +38,7 @@ export async function getProductDetails(asin: string): Promise<ProductDetails> {
   let html: string
   if (USE_MOCKS) {
     console.error('[INFO][get-product-details] Fetching product details from mocks')
-    const mockPath = `${__dirname}/../mocks/getProductDetails.html`
+    const mockPath = path.join(PACKAGE_ROOT, 'mocks', 'getProductDetails.html')
     html = fs.readFileSync(mockPath, 'utf-8')
   } else {
     const domain = getAmazonDomain()
@@ -65,7 +64,7 @@ export async function getProductDetails(asin: string): Promise<ProductDetails> {
       if (EXPORT_LIVE_SCRAPING_FOR_MOCKS) {
         // Export the main product content to a mock file
         const timestamp = getTimestamp()
-        const mockPath = `${__dirname}/../mocks/getProductDetails_${timestamp}.html`
+        const mockPath = path.join(PACKAGE_ROOT, 'mocks', `getProductDetails_${timestamp}.html`)
         const productHtml = await page.content()
         fs.writeFileSync(mockPath, productHtml)
         console.error(`[INFO][get-product-details] Exported product page HTML to ${mockPath}`)
@@ -136,7 +135,7 @@ async function extractProductDetailsPageData($: cheerio.CheerioAPI, asin: string
   if (mainImageUrl) {
     if (USE_MOCKS) {
       console.error('[INFO][get-product-details] Downloading product main image from mocks')
-      const mockPath = `${__dirname}/../mocks/getProductDetails_image_base64.txt`
+      const mockPath = path.join(PACKAGE_ROOT, 'mocks', 'getProductDetails_image_base64.txt')
       mainImageBase64 = fs.readFileSync(mockPath, 'utf-8')
     } else {
       // FIXME: This is not supported yet by Claude Desktop client!! Uncomment when they implement it
@@ -144,7 +143,7 @@ async function extractProductDetailsPageData($: cheerio.CheerioAPI, asin: string
       // mainImageBase64 = await downloadImageAsBase64(mainImageUrl)
       // if (EXPORT_LIVE_SCRAPING_FOR_MOCKS) {
       //   const timestamp = getTimestamp()
-      //   const mockPath = `${__dirname}/../mocks/getProductDetails_image_base64_${timestamp}.txt`
+      //   const mockPath = path.join(PACKAGE_ROOT, 'mocks', `getProductDetails_image_base64_${timestamp}.txt`)
       //   fs.writeFileSync(mockPath, mainImageBase64)
       //   console.error(`[INFO][get-product-details] Exported main image base64 to ${mockPath}`)
       // }
@@ -204,7 +203,7 @@ export async function searchProducts(searchTerm: string): Promise<ProductSearchR
   let html: string
   if (USE_MOCKS) {
     console.error('[INFO][search-products] Fetching search results from mocks')
-    const mockPath = `${__dirname}/../mocks/searchProducts.html`
+    const mockPath = path.join(PACKAGE_ROOT, 'mocks', 'searchProducts.html')
     html = fs.readFileSync(mockPath, 'utf-8')
   } else {
     const domain = getAmazonDomain()
@@ -234,7 +233,7 @@ export async function searchProducts(searchTerm: string): Promise<ProductSearchR
         const timestamp = getTimestamp()
         const searchResultsHtml = await page.$eval('.s-search-results', el => el.outerHTML)
         const mockFileName = `searchProducts_${timestamp}.html`
-        const mockPath = `${__dirname}/../mocks/${mockFileName}`
+        const mockPath = path.join(PACKAGE_ROOT, 'mocks', mockFileName)
         fs.writeFileSync(mockPath, searchResultsHtml)
         console.error(`[INFO][search-products] Exported search results HTML to ${mockPath}`)
       }

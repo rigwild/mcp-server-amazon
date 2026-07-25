@@ -1,10 +1,9 @@
 import * as cheerio from 'cheerio'
 import fs from 'fs'
+import path from 'path'
 import puppeteer from 'puppeteer'
-import { USE_MOCKS, EXPORT_LIVE_SCRAPING_FOR_MOCKS, getAmazonDomain } from './config.js'
+import { USE_MOCKS, EXPORT_LIVE_SCRAPING_FOR_MOCKS, PACKAGE_ROOT, getAmazonDomain } from './config.js'
 import { createBrowserAndPage, getTimestamp, throwIfNotLoggedIn } from './utils.js'
-
-const __dirname = new URL('.', import.meta.url).pathname
 
 // ##################################
 // Get Orders History
@@ -14,7 +13,7 @@ export async function getOrdersHistory() {
   let html: string
   if (USE_MOCKS) {
     console.error('[INFO][get-orders-history] Fetching orders history from mocks')
-    const mockPath = `${__dirname}/../mocks/getOrdersHistory.html`
+    const mockPath = path.join(PACKAGE_ROOT, 'mocks', 'getOrdersHistory.html')
     html = fs.readFileSync(mockPath, 'utf-8')
   } else {
     const domain = getAmazonDomain()
@@ -42,7 +41,7 @@ export async function getOrdersHistory() {
       if (EXPORT_LIVE_SCRAPING_FOR_MOCKS) {
         // Export only the .order-card and .your-orders-content-container content to a mock file
         const timestamp = getTimestamp()
-        const mockPath = `${__dirname}/../mocks/getOrdersHistory_${timestamp}.html`
+        const mockPath = path.join(PACKAGE_ROOT, 'mocks', `getOrdersHistory_${timestamp}.html`)
         const orderCardsHtml = await page.$$eval('.order-card, .your-orders-content-container', elements =>
           elements.map(el => el.outerHTML).join('\n')
         )

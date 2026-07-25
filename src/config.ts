@@ -1,16 +1,29 @@
+import path from 'path'
+import { fileURLToPath } from 'url'
 import { loadAmazonCookiesFile } from './utils.js'
 
-const __dirname = new URL('.', import.meta.url).pathname
+const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
-export const IS_BROWSER_VISIBLE = false
+/** Directory where the package is installed (one level up from build/) */
+export const PACKAGE_ROOT = path.resolve(__dirname, '..')
+
+export const IS_BROWSER_VISIBLE = process.env.IS_BROWSER_VISIBLE === 'true'
 
 /** Use local mock files instead of live scraping */
-export const USE_MOCKS = false
+export const USE_MOCKS = process.env.USE_MOCK_RESPONSES === 'true'
 
 /** Export live scraping HTML to mocks for future use */
-export const EXPORT_LIVE_SCRAPING_FOR_MOCKS = true
+export const EXPORT_LIVE_SCRAPING_FOR_MOCKS = process.env.EXPORT_LIVE_SCRAPING_FOR_MOCKS !== 'false'
 
-export const COOKIES_FILE_PATH = `${__dirname}/../amazonCookies.json`
+/**
+ * Cookie file path resolution order:
+ * 1. AMAZON_COOKIES_PATH env var (absolute or relative to CWD)
+ * 2. amazonCookies.json in current working directory
+ * 3. amazonCookies.json in the package root directory
+ */
+export const COOKIES_FILE_PATH =
+  process.env.AMAZON_COOKIES_PATH ||
+  path.join(process.cwd(), 'amazonCookies.json')
 /**
  * Go to the Amazon website and log in to your account
  * Then export cookies as JSON using a browser extension like "Cookie-Editor"

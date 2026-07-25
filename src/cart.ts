@@ -1,9 +1,8 @@
 import * as cheerio from 'cheerio'
 import fs from 'fs'
-import { USE_MOCKS, EXPORT_LIVE_SCRAPING_FOR_MOCKS, getAmazonDomain } from './config.js'
+import path from 'path'
+import { USE_MOCKS, EXPORT_LIVE_SCRAPING_FOR_MOCKS, PACKAGE_ROOT, getAmazonDomain } from './config.js'
 import { createBrowserAndPage, getTimestamp, throwIfNotLoggedIn } from './utils.js'
-
-const __dirname = new URL('.', import.meta.url).pathname
 
 // ##################################
 // Cart Content Types
@@ -35,7 +34,7 @@ export async function getCartContent(): Promise<CartContent> {
   let html: string
   if (USE_MOCKS) {
     console.error('[INFO][get-cart-content] Fetching cart content from mocks')
-    const mockPath = `${__dirname}/../mocks/getCartContent.html`
+    const mockPath = path.join(PACKAGE_ROOT, 'mocks', 'getCartContent.html')
     html = fs.readFileSync(mockPath, 'utf-8')
   } else {
     const domain = getAmazonDomain()
@@ -61,7 +60,7 @@ export async function getCartContent(): Promise<CartContent> {
       if (EXPORT_LIVE_SCRAPING_FOR_MOCKS) {
         // Export only the `#sc-active-cart` content to a mock file
         const timestamp = getTimestamp()
-        const mockPath = `${__dirname}/../mocks/getCartContent_${timestamp}.html`
+        const mockPath = path.join(PACKAGE_ROOT, 'mocks', `getCartContent_${timestamp}.html`)
         const cartHtml = await page.$eval('#sc-active-cart', el => el.outerHTML)
         fs.writeFileSync(mockPath, cartHtml)
         console.error(`[INFO][get-cart-content] Exported cart container HTML to ${mockPath}`)

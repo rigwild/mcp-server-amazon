@@ -1,17 +1,30 @@
 {
   "name": "mcp-server-amazon",
-  "private": true,
-  "description": "Amazon Model Context Protocol Server",
+  "description": "Amazon Model Context Protocol Server - enables AI assistants to interact with Amazon services",
   "version": "1.0.0",
   "main": "./build/index.js",
   "type": "module",
+  "bin": {
+    "mcp-server-amazon": "./build/index.js"
+  },
   "scripts": {
-    "build": "tsc && chmod -R 755 ./build",
-    "clean": "rm mocks/*_202*"
+    "build": "tsc",
+    "clean": "rm mocks/*_202*",
+    "prepare": "npm run build"
   },
   "files": [
-    "build"
+    "build",
+    "amazonCookies.example.json"
   ],
+  "keywords": [
+    "mcp",
+    "amazon",
+    "model-context-protocol",
+    "ai",
+    "scraping",
+    "puppeteer"
+  ],
+  "license": "MIT",
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.4.0",
     "cheerio": "^1.1.0",
