@@ -48,11 +48,31 @@ assert.equal(filterVariants(synthetic, ['Size', 'Color'], 'large', /size/i).leng
 const black = filterVariants(map.variants, map.dimensionNames, 'black', /colou?r/i)
 assert.ok(black.length > 0 && black.every(v => v.values[1].toLowerCase().includes('black')))
 assert.equal(filterVariants(synthetic, ['Size', 'Color'], 'nope', /size/i).length, 0)
+// Real layout of B07Z9PY46C: "Special Size" comes before "Size"; the filter must use "Size"
+const threeDims = [
+  { asin: 'B07Z9Q8ZZR', values: ['Thanksgiving', 'XX-Large', 'Navy Thanksgiving'] },
+  { asin: 'A000000003', values: ['Thanksgiving', 'Large', 'Navy Thanksgiving'] },
+]
+assert.deepEqual(
+  filterVariants(threeDims, ['Special Size', 'Size', 'Color'], 'XX-Large', /size/i).map(v => v.asin),
+  ['B07Z9Q8ZZR'],
+  'size filter must use the dimension named exactly "Size"'
+)
+assert.equal(filterVariants(threeDims, ['Special Size', 'Color'], 'Thanksgiving', /size/i).length, 2, 'partial name fallback')
 assert.equal(filterVariants(synthetic, ['Size', 'Color'], undefined, /size/i).length, 2, 'no filter keeps all')
 
 // Child offer: the mock is a single page with a delivery block
 const offer = parseChildOffer(cheerio.load(html))
 assert.ok(offer.delivery?.time, 'delivery time should be read from data-csa-c-delivery-time')
+assert.ok(!offer.availability?.includes('{'), 'availability must not contain page JSON')
+// Live markup of #availability: visible span plus a hidden a-state script
+const liveAvailability = parseChildOffer(
+  cheerio.load(
+    '<div id="availability"><span class="primary-availability-message">In Stock</span>' +
+      '<script type="a-state">{"isInternal":false,"showInsightsHub":false}</script><br></div>'
+  )
+)
+assert.equal(liveAvailability.availability, 'In Stock')
 console.log('Child offer parsed from mock:', JSON.stringify(offer, null, 2))
 
 console.log(`✅ getProductVariants offline tests passed (${map.variants.length} variants in mock)`)

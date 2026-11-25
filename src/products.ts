@@ -415,7 +415,8 @@ export function parseVariantMap(html: string): { dimensionNames: string[]; varia
 export function parseChildOffer($: cheerio.CheerioAPI): Pick<ProductVariant, 'price' | 'availability' | 'delivery' | 'fastestDelivery'> {
   const price =
     $('#corePrice_feature_div .a-offscreen').first().text().trim() || $('.apexPriceToPay .a-offscreen').first().text().trim() || undefined
-  const availability = $('#availability').text().replace(/\s+/g, ' ').trim() || undefined
+  // #availability also holds a <script type="a-state"> with page JSON; keep only the visible text
+  const availability = $('#availability').clone().find('script, style').remove().end().text().replace(/\s+/g, ' ').trim() || undefined
   // Amazon shows the primary delivery first and, when offered, a faster paid/Prime option second
   const [primary, fastest] = $('[data-csa-c-delivery-time]')
     .toArray()
@@ -436,7 +437,10 @@ export function filterVariants(
 ) {
   if (!filter) return variants
   const wanted = filter.trim().toLowerCase()
-  const index = dimensionNames.findIndex(name => dimensionPattern.test(name))
+  // A dimension named exactly "Size" beats e.g. "Special Size" or "Size Name"
+  const exactName = new RegExp(`^(?:${dimensionPattern.source})$`, 'i')
+  let index = dimensionNames.findIndex(name => exactName.test(name.trim()))
+  if (index < 0) index = dimensionNames.findIndex(name => dimensionPattern.test(name))
   // If the page doesn't name a matching dimension, search all values
   const candidates = (v: { values: string[] }) => (index >= 0 ? [v.values[index] ?? ''] : v.values).map(s => s.toLowerCase())
   const exact = variants.filter(v => candidates(v).some(s => s === wanted))
