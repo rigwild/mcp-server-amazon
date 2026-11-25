@@ -353,3 +353,155 @@ function extractSearchResultSingleProductData($: cheerio.CheerioAPI, $item: chee
     productUrl,
   }
 }
+
+// ##################################
+// Product Variants
+// ##################################
+
+export const VARIANTS_DEFAULT_LIMIT = 5
+export const VARIANTS_MAX_LIMIT = 15
+
+interface DeliveryOption {
+  time?: string
+  price?: string
+  cutoff?: string
+}
+
+interface ProductVariant {
+  asin: string
+  dimensions: Record<string, string>
+  price?: string
+  availability?: string
+  delivery?: DeliveryOption
+  fastestDelivery?: DeliveryOption
+  url: string
+  error?: string
+}
+
+interface ProductVariantsResult {
+  parentAsin: string
+  dimensionNames: string[]
+  totalVariants: number
+  matched: number
+  fetched: number
+  skipped: number
+  variants: ProductVariant[]
+}
+
+/** Parse the variation ("twister") data embedded in a product page: child ASIN -> dimension values. */
+export function parseVariantMap(html: string): { dimensionNames: string[]; variants: { asin: string; values: string[] }[] } | null {
+  // shortcut: regex stops at the first "}", breaks if a size/color value contains "}"; upgrade to a JSON scanner if that ever happens
+  const valuesMatch = html.match(/"dimensionValuesDisplayData"\s*:\s*(\{[^}]*\})/)
+  if (!valuesMatch) return null
+  let values: Record<string, string[]>
+  try {
+    values = JSON.parse(valuesMatch[1])
+  } catch (error: any) {
+    throw new Error(`Could not parse variation data on the product page: ${error.message}`)
+  }
+  const namesMatch = html.match(/"dimensionsDisplay"\s*:\s*(\[[^\]]*\])/)
+  let dimensionNames: string[] = namesMatch ? JSON.parse(namesMatch[1]) : []
+  // amazon.com pages have no dimensionsDisplay: map dimension keys (size_name) through variationDisplayLabels (Size)
+  const keysMatch = html.match(/"dimensions"\s*:\s*(\[[^\]]*\])/)
+  const labelsMatch = html.match(/"variationDisplayLabels"\s*:\s*(\{[^}]*\})/)
+  if (!namesMatch && keysMatch && labelsMatch) {
+    const labels: Record<string, string> = JSON.parse(labelsMatch[1])
+    dimensionNames = (JSON.parse(keysMatch[1]) as string[]).map(key => labels[key] ?? key)
+  }
+  return { dimensionNames, variants: Object.entries(values).map(([asin, values]) => ({ asin, values })) }
+}
+
+/** Parse price, stock and delivery from a child (single variation) product page. */
+export function parseChildOffer($: cheerio.CheerioAPI): Pick<ProductVariant, 'price' | 'availability' | 'delivery' | 'fastestDelivery'> {
+  const price =
+    $('#corePrice_feature_div .a-offscreen').first().text().trim() || $('.apexPriceToPay .a-offscreen').first().text().trim() || undefined
+  const availability = $('#availability').text().replace(/\s+/g, ' ').trim() || undefined
+  // Amazon shows the primary delivery first and, when offered, a faster paid/Prime option second
+  const [primary, fastest] = $('[data-csa-c-delivery-time]')
+    .toArray()
+    .map(el => ({
+      time: $(el).attr('data-csa-c-delivery-time') || undefined,
+      price: $(el).attr('data-csa-c-delivery-price') || undefined,
+      cutoff: $(el).attr('data-csa-c-delivery-cutoff') || undefined,
+    }))
+  return { price, availability, delivery: primary, fastestDelivery: fastest }
+}
+
+/** Keep variants whose dimension matches the filter: exact (case-insensitive) match wins, else substring. */
+export function filterVariants(
+  variants: { asin: string; values: string[] }[],
+  dimensionNames: string[],
+  filter: string | undefined,
+  dimensionPattern: RegExp
+) {
+  if (!filter) return variants
+  const wanted = filter.trim().toLowerCase()
+  const index = dimensionNames.findIndex(name => dimensionPattern.test(name))
+  // If the page doesn't name a matching dimension, search all values
+  const candidates = (v: { values: string[] }) => (index >= 0 ? [v.values[index] ?? ''] : v.values).map(s => s.toLowerCase())
+  const exact = variants.filter(v => candidates(v).some(s => s === wanted))
+  return exact.length > 0 ? exact : variants.filter(v => candidates(v).some(s => s.includes(wanted)))
+}
+
+export async function getProductVariants(
+  asin: string,
+  options: { size?: string; color?: string; limit?: number } = {}
+): Promise<ProductVariantsResult> {
+  if (!asin || asin.length !== 10) {
+    throw new Error('Invalid ASIN provided. ASIN should be a 10-character string.')
+  }
+  const limit = Math.min(Math.max(1, Math.floor(options.limit ?? VARIANTS_DEFAULT_LIMIT)), VARIANTS_MAX_LIMIT)
+  const domain = getAmazonDomain()
+  const childUrl = (childAsin: string) => `https://www.${domain}/dp/${childAsin}?th=1&psc=1`
+
+  // One browser for the parent and every child page; launching per page is the slow part
+  const session = USE_MOCKS ? null : await createBrowserAndPage()
+  try {
+    const loadHtml = async (url: string, timeout: number) => {
+      if (!session) return fs.readFileSync(`${__dirname}/../mocks/getProductDetails.html`, 'utf-8')
+      console.error(`[INFO][get-product-variants] Fetching ${url}`)
+      await session.page.goto(url, { waitUntil: 'domcontentloaded', timeout })
+      await throwIfNotLoggedIn(session.page)
+      // Price/stock/delivery are server-rendered; give the buy box a moment without waiting for network idle
+      await session.page.waitForSelector('#availability, [data-csa-c-delivery-time]', { timeout: 5000 }).catch(() => {})
+      return session.page.content()
+    }
+
+    const map = parseVariantMap(await loadHtml(`https://www.${domain}/-/en/gp/product/${asin}`, 30000))
+    if (!map) {
+      return { parentAsin: asin, dimensionNames: [], totalVariants: 0, matched: 0, fetched: 0, skipped: 0, variants: [] }
+    }
+
+    let matched = filterVariants(map.variants, map.dimensionNames, options.size, /size/i)
+    matched = filterVariants(matched, map.dimensionNames, options.color, /colou?r/i)
+    const selected = matched.slice(0, limit)
+
+    const variants: ProductVariant[] = []
+    for (const v of selected) {
+      const dimensions = Object.fromEntries(v.values.map((value, i) => [map.dimensionNames[i] ?? `dimension${i + 1}`, value]))
+      const url = childUrl(v.asin)
+      try {
+        variants.push({ asin: v.asin, dimensions, ...parseChildOffer(cheerio.load(await loadHtml(url, 20000))), url })
+      } catch (error: any) {
+        // One slow or blocked child page shouldn't lose the others
+        console.error(`[ERROR][get-product-variants] Failed to fetch ${v.asin}:`, error)
+        variants.push({ asin: v.asin, dimensions, url, error: error.message })
+      }
+    }
+
+    console.error(
+      `[INFO][get-product-variants] ${asin}: ${map.variants.length} variants, ${matched.length} matched, ${variants.length} fetched`
+    )
+    return {
+      parentAsin: asin,
+      dimensionNames: map.dimensionNames,
+      totalVariants: map.variants.length,
+      matched: matched.length,
+      fetched: variants.length,
+      skipped: matched.length - variants.length,
+      variants,
+    }
+  } finally {
+    await session?.browser.close()
+  }
+}
