@@ -3,7 +3,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { z } from 'zod'
 import { getOrdersHistory } from './orders.js'
 import { getCartContent, addToCart, clearCart, removeFromCart } from './cart.js'
-import { getProductDetails, searchProducts } from './products.js'
+import { getProductDetails, getProductVariants, searchProducts, VARIANTS_DEFAULT_LIMIT, VARIANTS_MAX_LIMIT } from './products.js'
 
 // Create server instance
 const server = new McpServer({
@@ -302,6 +302,55 @@ server.tool(
           text: '✅ Purchase confirmed! You can now consult your orders history to see the details of your latest purchase.',
         },
       ],
+    }
+  }
+)
+
+server.tool(
+  'get-product-variants',
+  'List the variations of a product (size, color, ...) with the child ASIN of each, and the price, stock and delivery date of each variation - ' +
+    'Use size/color filters to narrow it down before fetching (e.g. size "XX-Large"): each variation is a separate page load and takes several seconds - ' +
+    `Fetches at most ${VARIANTS_MAX_LIMIT} variations per call (default ${VARIANTS_DEFAULT_LIMIT}); "skipped" says how many matches were not fetched - ` +
+    'Always provide the product link when you mention a product in the response',
+  {
+    asin: z
+      .string()
+      .length(10, { message: 'ASIN must be a 10-character string.' })
+      .describe('The ASIN of the product (parent or any of its variations). Must be a 10-character string.'),
+    size: z.string().optional().describe('Only variations with this size, e.g. "XX-Large". Exact match first, otherwise partial match.'),
+    color: z.string().optional().describe('Only variations with this color, e.g. "Brown". Exact match first, otherwise partial match.'),
+    limit: z
+      .number()
+      .int()
+      .min(1)
+      .max(VARIANTS_MAX_LIMIT)
+      .optional()
+      .describe(`Maximum number of variations to fetch details for (default ${VARIANTS_DEFAULT_LIMIT}, max ${VARIANTS_MAX_LIMIT}).`),
+  },
+  async ({ asin, size, color, limit }) => {
+    let result: Awaited<ReturnType<typeof getProductVariants>>
+    try {
+      result = await getProductVariants(asin, { size, color, limit })
+    } catch (error: any) {
+      console.error('[ERROR][get-product-variants] Error in get-product-variants tool:', error)
+      return {
+        content: [
+          {
+            type: 'text',
+            text: `An error occurred while retrieving product variants. Error: ${error.message}`,
+          },
+        ],
+      }
+    }
+
+    if (result.totalVariants === 0) {
+      return {
+        content: [{ type: 'text', text: `Product ${asin} has no variations (or none were found on its page).` }],
+      }
+    }
+
+    return {
+      content: [{ type: 'text', text: JSON.stringify(result, null, 2) }],
     }
   }
 )

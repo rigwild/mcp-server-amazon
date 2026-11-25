@@ -73,6 +73,7 @@ The server requires Amazon cookies for authentication:
 6. `remove-from-cart`: Remove a single item from the cart by ASIN (leaves other items untouched)
 7. `clear-cart`: Remove all items from cart
 8. `perform-purchase`: Complete purchase (mock mode only)
+9. `get-product-variants`: List a product's variations (size/color → child ASIN) with price, stock and delivery per variation; optional `size`/`color` filters, fetches at most `limit` child pages (default 5, max 15). Offline test: `node build/amazon.getProductVariants.test.js`
 
 ## Testing Approach
 
