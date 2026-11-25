@@ -425,7 +425,9 @@ export function parseChildOffer($: cheerio.CheerioAPI): Pick<ProductVariant, 'pr
       price: $(el).attr('data-csa-c-delivery-price') || undefined,
       cutoff: $(el).attr('data-csa-c-delivery-cutoff') || undefined,
     }))
-  return { price, availability, delivery: primary, fastestDelivery: fastest }
+  // Amazon sometimes repeats the primary option; only report a second option that actually differs
+  const isDifferent = fastest && JSON.stringify(fastest) !== JSON.stringify(primary)
+  return { price, availability, delivery: primary, fastestDelivery: isDifferent ? fastest : undefined }
 }
 
 /** Keep variants whose dimension matches the filter: exact (case-insensitive) match wins, else substring. */

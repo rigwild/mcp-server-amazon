@@ -73,6 +73,14 @@ const liveAvailability = parseChildOffer(
   )
 )
 assert.equal(liveAvailability.availability, 'In Stock')
+// fastestDelivery only when it differs from delivery
+const deliverySpan = (time: string, price: string) =>
+  `<span data-csa-c-delivery-time="${time}" data-csa-c-delivery-price="${price}" data-csa-c-delivery-cutoff=""></span>`
+const repeated = parseChildOffer(cheerio.load(deliverySpan('Today 3 PM - 6 PM', 'FREE') + deliverySpan('Today 3 PM - 6 PM', 'FREE')))
+assert.equal(repeated.delivery?.time, 'Today 3 PM - 6 PM')
+assert.equal(repeated.fastestDelivery, undefined, 'identical second option is dropped')
+const twoOptions = parseChildOffer(cheerio.load(deliverySpan('Saturday, November 28', 'FREE') + deliverySpan('Tomorrow, November 26', '$5.99')))
+assert.deepEqual(twoOptions.fastestDelivery, { time: 'Tomorrow, November 26', price: '$5.99', cutoff: undefined })
 console.log('Child offer parsed from mock:', JSON.stringify(offer, null, 2))
 
 console.log(`✅ getProductVariants offline tests passed (${map.variants.length} variants in mock)`)
